@@ -1,6 +1,6 @@
 # Fargate Kaniko
 
-An experiment to run the [Google
+An experiment to run [Google
 Kaniko](https://github.com/GoogleContainerTools/kaniko) as a Container Image
 builder inside of AWS Fargate. Traditional Container Image Builders (docker
 build) can not run in the default isolation boundary of a container and often
@@ -14,12 +14,12 @@ ECS. This Run Task could be triggered be a CI pipeline easily enough.
 
 The Task definition includes 2 containers. A git container and a Kaniko
 container. One of the design goals here was to use the upstream Kaniko image. I
-did not want to have to maintain my own image builder image. Running a seperate
-[Git container](./git-container/) in the same task, which is an Alpine base with
-the git client installed, allows me to achieve this design goal by not
-installing additional tools in the Kaniko image.
+did not want to have to maintain my own builder image. Running a seperate [Git
+container](./git-container/) in the same task, which is an Alpine base with the
+git client installed, allows me to achieve this design goal by not installing
+additional tools in the Kaniko image.
 
-## Pre Requisities
+## Prerequisites
 
 This repo assumes some core AWS infrastructure is in place.
 
@@ -47,7 +47,7 @@ aws logs put-retention-policy \
 Create the ECS task defintion. This will need to be customised for your
 environment with the relevant ARNs and ECR / Git Repos. Also the commands in the
 Kaniko container definition set the Build Context and the location of the
-Dockerfile, these will need to be updated dependong in the application git
+Dockerfile, these will need to be updated depending on the application git
 repository layout.
 
 ```
@@ -56,8 +56,8 @@ aws ecs register-task-definition \
     --cli-input-json file://kaniko-taskdef.json
 ```
 
-Finally we are able to run the ECS Task. The run task definition will also need
-to updated with the relevant AWS VPC, Subnet, Secruity Group and ECS Cluster.
+Finally we can run the ECS Task. This Run Task definition will also need to
+updated with the relevant AWS VPC, Subnet, Secruity Group and ECS Cluster.
 
 ```
 aws ecs run-task \
