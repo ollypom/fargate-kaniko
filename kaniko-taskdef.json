@@ -1,44 +1,32 @@
 {
-    "family": "kaniko-builder",
+    "family": "kaniko-jenkins",
     "taskRoleArn": "arn:aws:iam::223615444511:role/Kaniko_Task_Role",
     "executionRoleArn": "arn:aws:iam::223615444511:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
     "containerDefinitions": [
         {
-            "name": "git",
-            "image": "ollypom/git",
+            "name": "jenkins-agent",
+            "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/jenkins:inbound-agent",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-group": "kaniko-builder",
                     "awslogs-region": "eu-west-1",
-                    "awslogs-stream-prefix": "git"
+                    "awslogs-stream-prefix": "jenkins-agent"
                 }
             },
-            "essential": false,
-            "environment": [
-                {
-                    "name": "GIT_URL",
-                    "value": "https://github.com/ollypom/mysfits.git"
-                }
-            ],
+            "essential": true,
             "mountPoints": [
                 {
                     "sourceVolume": "sourcecode",
                     "containerPath": "/data",
                     "readOnly": false
-                },
-                {
-                    "sourceVolume": "dockerconfig",
-                    "containerPath": "/docker",
-                    "readOnly": false
                 }
-            ],
-            "entryPoint": ["/bin/sh", "docker-entrypoint.sh"]
+            ]
         },
         {
             "name": "kaniko",
-            "image": "gcr.io/kaniko-project/executor:latest",
+            "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko-debug",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -47,38 +35,20 @@
                     "awslogs-stream-prefix": "kaniko"
                 }
             },
+            "essential": false,
             "mountPoints": [
                 {
                     "sourceVolume": "sourcecode",
                     "containerPath": "/data",
                     "readOnly": false
-                },
-                {
-                    "sourceVolume": "dockerconfig",
-                    "containerPath": "/kaniko/.docker",
-                    "readOnly": false
                 }
             ],
-            "dependsOn": [
-                {
-                    "containerName": "git",
-                    "condition": "SUCCESS"
-                }
-            ],
-            "command": [
-                "--context", "dir:///data/myapp/api/",
-                "--dockerfile", "Dockerfile.v3",
-                "--destination", "223615444511.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest",
-                "--force"
-            ]
+            "entryPoint": ["/busybox/sh"],
+            "command": ["/docker-entrypoint.sh"]
         }],
         "volumes": [
             {
                 "name": "sourcecode",
-                "host": {}
-            },
-            {
-                "name": "dockerconfig",
                 "host": {}
             }
         ],
