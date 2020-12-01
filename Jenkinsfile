@@ -39,7 +39,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Watch Container Life') {
+                        stage('Build Lifecyle') {
                             steps {
                                 sh '''
                                 STATUS=RUNNING
