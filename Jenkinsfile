@@ -1,9 +1,9 @@
 pipeline {
-  agent {
-    label 'fargate-workers'
-  }
+    agent {
+        label 'fargate-workers'
+    }
   
-  stages {
+    stages {
         stage('Clone') {
             steps {
                 echo "Cloning Repo"
@@ -15,27 +15,56 @@ pipeline {
                 #!/busybox/sh
                 /kaniko/executor \
                 --context "dir:///data/myapp/api/" \
-                --dockerfile "Dockerfile.v1" \
-                --destination "223615444511.dkr.ecr.eu-west-1.amazonaws.com/mysfits:v1latest" \
-                --force
+                --dockerfile "Dockerfile.v4" \
+                --destination "223615444511.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest" \
+                --force > /data/buildlogs 2>> /data/buildlogs
                 '''
             }
         }
-        stage('Build') {
-            steps {
-                echo "Triggering Build"
-                sh "touch /data/ready"
-                echo "Watching for Build"
-                sh '''
-                STATUS=RUNNING
-                while [ $STATUS == "RUNNING" ]
-                do
-                    STATUS=$(curl --silent ${ECS_CONTAINER_METADATA_URI_V4}/task | jq -r '.Containers | .[] | select(.Name == "kaniko") | .KnownStatus')
-                    echo "Still Building"
-                    sleep 2
-                done
-                '''
-                echo "Build Complete"
+        stage('Build Container') {
+            stages {
+                stage('Trigger Build') {
+                    steps {
+                        sh "touch /data/ready"
+                    }
+                }
+                stage('Watch Build') {
+                    failFast true
+                    parallel {
+                        stage('Build Logs') {
+                            steps {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sh "touch /data/buildlogs"
+                                    sh "tail -f /data/buildlogs"
+                                }
+                            }
+                        }
+                        stage('Watch Container Life') {
+                            steps {
+                                sh '''
+                                STATUS=RUNNING
+                                while [ $STATUS == "RUNNING" ]
+                                do
+                                    STATUS=$(curl --silent ${ECS_CONTAINER_METADATA_URI_V4}/task | jq -r '.Containers | .[] | select(.Name == "kaniko") | .KnownStatus')
+                                    echo "Still Building"
+                                    sleep 2
+                                done
+                                
+                                pkill --signal 15 tail
+                                
+                                EXIT_CODE=$(curl --silent ${ECS_CONTAINER_METADATA_URI_V4}/task | jq -r '.Containers | .[] | select(.Name == "kaniko") | .ExitCode')
+
+                                if [ $EXIT_CODE = 1 ]
+                                then
+                                    exit 1
+                                else
+                                    exit 0
+                                fi
+                                '''
+                            }
+                        }
+                    }
+                }
             }
         }
     }

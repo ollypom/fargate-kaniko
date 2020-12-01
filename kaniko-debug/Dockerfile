@@ -1,3 +1,3 @@
 FROM gcr.io/kaniko-project/executor:debug
 
-COPY * /
+COPY docker-entrypoint.sh /docker-entrypoint.sh
