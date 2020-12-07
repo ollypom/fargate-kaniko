@@ -1,77 +1,51 @@
-# Fargate Kaniko
+### Building Images On EKS Fargate
 
-An experiment to run [Google
-Kaniko](https://github.com/GoogleContainerTools/kaniko) as a Container Image
-builder inside of AWS Fargate. Traditional Container Image Builders (docker
-build) can not run in the default isolation boundary of a container and often
-need host privileges (--privileged) or access to the underlying Container
-Runtime. In AWS Fargate, you are not able to run a container with "privileges"
-and you are not able to access the underlying container runtime. Therefore a
-rootless builder, like Kaniko is required.
-
-This repository contains a Task Definition and a Run Task instruction for Amazon
-ECS. This Run Task could be triggered be a CI pipeline easily enough.
-
-The Task definition includes a self hosted Kaniko container image. The only
-difference between this image and the upstream image is that I have hard coded
-the Docker CLI `config.json`, where registry credentials are normally held. As
-the application image will be pushed to ECR, no registry credentials are
-required (they are sourced from the Task Role), however Kaniko needs to be told
-to use the (ECR Credential
-Helper)[https://github.com/awslabs/amazon-ecr-credential-helper] via this
-`config.json` file.
+Create 3x ECR Repositories
 
 ```
-$ cd kaniko
-$ docker build -t 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor .
-$ docker push 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor
+JENKINS_AGENT_REPOSITORY=$(aws ecr create-repository --repository-name jenkins | jq -r '.repository.repositoryUri')
+KANIKO_REPOSITORY=$(aws ecr create-repository --repository-name kaniko | jq -r '.repository.repositoryUri')
+MYSFITS_REPOSITORY=$(aws ecr create-repository --repository-name mysfits| jq -r '.repository.repositoryUri')
 ```
 
-## Prerequisites
-
-This repo assumes some core AWS infrastructure is in place.
-
-- A VPC, Subnets and Security Group (No inbound access is required in the
-  security group)
-- An ECS Cluster
-- An ECR Repository
-- An IAM Role with a Policy that can push to the ECR repository. This will be
-  assumed by our ECS Task.
-
-## Create ECS Task Definition
-
-First we will create the Cloudwatch Log Group with a short retention policy for
-our build logs to go to.
+Prepare Jenkins Agent Image
 
 ```
-aws logs create-log-group \
-    --log-group-name kaniko-builder
-
-aws logs put-retention-policy \
-    --log-group-name kaniko-builder \
-    --retention-in-days 7
+docker pull jenkins/inbound-agent:4.3-4-alpine
+docker tag docker.io/jenkins/inbound-agent:4.3-4-alpine $JENKINS_AGENT_REPOSITORY
+docker push $JENKINS_AGENT_REPOSITORY
 ```
 
-Create the ECS task defintion. This will need to be customised for your
-environment with the relevant ARNs and ECR / Git Repos. Also the commands in the
-Kaniko container definition set the Build Context and the location of the
-Dockerfile, these will need to be updated depending on the application git
-repository layout.
+Prepare Kaniko Image
 
 ```
-aws ecs register-task-definition \
-    --family kaniko-builder \
-    --cli-input-json file://kaniko-taskdef.json
+$ /kaniko$ tree
+.
+├── Dockerfile
+└── config.json
+
+$ cat config.json 
+{ "credsStore": "ecr-login" }
+
+$ cat Dockerfile 
+FROM gcr.io/kaniko-project/executor:debug
+
+COPY ./config.json /kaniko/.docker/config.json
+
+$ docker build -t $KANIKO_REPOSITORY .
+$ docker push $KANIKO_REPOSITORY
 ```
 
-Finally we can run the ECS Task. This Run Task definition will also need to
-updated with the relevant AWS VPC, Subnet, Secruity Group and ECS Cluster.
+Create IAM Role to be used by a Kubernetes Service Account. 
 
 ```
-aws ecs run-task \
-    --task-definition kaniko-builder:17 \
-    --cli-input-json file://kaniko-runtask.json
+eksctl create iamserviceaccount \
+    --name jenkins-sa-agent \
+    --namespace default \
+    --cluster fargate-jenkins-cluster \
+    --attach-policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser \
+    --approve \
+    --override-existing-serviceaccounts
 ```
 
-Now you can monitor the build in Cloudwatch Logs and watch the ECR repository
-for your new container image :)
+Create a Jenkins Pipeline Job in the UI. And use the attached [Jenkinsfile](./jenkinsfile)
