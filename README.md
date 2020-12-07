@@ -17,8 +17,8 @@ difference between this image and the upstream image is that I have hard coded
 the Docker CLI `config.json`, where registry credentials are normally held. As
 the application image will be pushed to ECR, no registry credentials are
 required (they are sourced from the Task Role), however Kaniko needs to be told
-to use the (ECR Credential
-Helper)[https://github.com/awslabs/amazon-ecr-credential-helper] via this
+to use the [ECR Credential
+Helper](https://github.com/awslabs/amazon-ecr-credential-helper) via this
 `config.json` file.
 
 ```
