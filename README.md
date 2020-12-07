@@ -15,10 +15,11 @@ ECS. This Run Task could be triggered be a CI pipeline easily enough.
 The Task definition includes a self hosted Kaniko container image. The only
 difference between this image and the upstream image is that I have hard coded
 the Docker CLI `config.json`, where registry credentials are normally held. As
-they newly built image will be pushed to ECR, no registry credentials are
+the application image will be pushed to ECR, no registry credentials are
 required (they are sourced from the Task Role), however Kaniko needs to be told
 to use the (ECR Credential
-Helper)[https://github.com/awslabs/amazon-ecr-credential-helper].
+Helper)[https://github.com/awslabs/amazon-ecr-credential-helper] via this
+`config.json` file.
 
 ```
 $ cd kaniko
