@@ -5,40 +5,8 @@
     "networkMode": "awsvpc",
     "containerDefinitions": [
         {
-            "name": "git",
-            "image": "ollypom/git",
-            "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                    "awslogs-group": "kaniko-builder",
-                    "awslogs-region": "eu-west-1",
-                    "awslogs-stream-prefix": "git"
-                }
-            },
-            "essential": false,
-            "environment": [
-                {
-                    "name": "GIT_URL",
-                    "value": "https://github.com/ollypom/mysfits.git"
-                }
-            ],
-            "mountPoints": [
-                {
-                    "sourceVolume": "sourcecode",
-                    "containerPath": "/data",
-                    "readOnly": false
-                },
-                {
-                    "sourceVolume": "dockerconfig",
-                    "containerPath": "/docker",
-                    "readOnly": false
-                }
-            ],
-            "entryPoint": ["/bin/sh", "docker-entrypoint.sh"]
-        },
-        {
             "name": "kaniko",
-            "image": "gcr.io/kaniko-project/executor:latest",
+            "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -47,41 +15,14 @@
                     "awslogs-stream-prefix": "kaniko"
                 }
             },
-            "mountPoints": [
-                {
-                    "sourceVolume": "sourcecode",
-                    "containerPath": "/data",
-                    "readOnly": false
-                },
-                {
-                    "sourceVolume": "dockerconfig",
-                    "containerPath": "/kaniko/.docker",
-                    "readOnly": false
-                }
-            ],
-            "dependsOn": [
-                {
-                    "containerName": "git",
-                    "condition": "SUCCESS"
-                }
-            ],
             "command": [
-                "--context", "dir:///data/myapp/api/",
+                "--context", "git://github.com/ollypom/mysfits.git",
+                "--context-sub-path", "./api",
                 "--dockerfile", "Dockerfile.v3",
                 "--destination", "223615444511.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest",
                 "--force"
             ]
         }],
-        "volumes": [
-            {
-                "name": "sourcecode",
-                "host": {}
-            },
-            {
-                "name": "dockerconfig",
-                "host": {}
-            }
-        ],
     "requiresCompatibilities": ["FARGATE"],
     "cpu": "512",
     "memory": "1024"

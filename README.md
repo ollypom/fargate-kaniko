@@ -12,12 +12,19 @@ rootless builder, like Kaniko is required.
 This repository contains a Task Definition and a Run Task instruction for Amazon
 ECS. This Run Task could be triggered be a CI pipeline easily enough.
 
-The Task definition includes 2 containers. A git container and a Kaniko
-container. One of the design goals here was to use the upstream Kaniko image. I
-did not want to have to maintain my own builder image. Running a seperate [Git
-container](./git-container/) in the same task, which is an Alpine base with the
-git client installed, allows me to achieve this design goal by not installing
-additional tools in the Kaniko image.
+The Task definition includes a self hosted Kaniko container image. The only
+difference between this image and the upstream image is that I have hard coded
+the Docker CLI `config.json`, where registry credentials are normally held. As
+they newly built image will be pushed to ECR, no registry credentials are
+required (they are sourced from the Task Role), however Kaniko needs to be told
+to use the (ECR Credential
+Helper)[https://github.com/awslabs/amazon-ecr-credential-helper].
+
+```
+$ cd kaniko
+$ docker build -t 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor .
+$ docker push 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor
+```
 
 ## Prerequisites
 
@@ -61,7 +68,7 @@ updated with the relevant AWS VPC, Subnet, Secruity Group and ECS Cluster.
 
 ```
 aws ecs run-task \
-    --task-definition kaniko-builder:14 \
+    --task-definition kaniko-builder:17 \
     --cli-input-json file://kaniko-runtask.json
 ```
 
