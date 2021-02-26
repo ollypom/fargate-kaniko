@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Jenkins CFN to deploy onto an existing Cluster
+
+Parameters:
+  CoreStackName:
+    Type: String
+    Description: Existing Core Stack with Networking Infra
+  JenkinsImage:
+    Type: String
+    Description: Jenkins Container Image
+  WhatIsMyIp:
+    Type: String
+    Description: What is my ip address
+
+Resources:
+
+  JenkinsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:VpcId"
+      GroupDescription: Access to Jenkins Fargate Container
+      SecurityGroupIngress:
+      - CidrIp: !Ref WhatIsMyIp
+        IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+
+  EfsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:VpcId"
+      GroupDescription: EFS Security Group
+      SecurityGroupIngress:
+      - SourceSecurityGroupId: !Ref JenkinsSecurityGroup
+        IpProtocol: tcp
+        FromPort: 2049
+        ToPort: 2049
+
+  EfsShare:
+    Type: AWS::EFS::FileSystem
+    Properties: 
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-jenkinsefs"
+      BackupPolicy: 
+        Status: "ENABLED"
+      Encrypted: True
+      PerformanceMode: "generalPurpose"
+      ThroughputMode: "bursting"
+
+  EfsMountTargetSubnet1:
+    Type: AWS::EFS::MountTarget
+    Properties: 
+      FileSystemId: !Ref EfsShare
+      SecurityGroups: 
+        - !Ref EfsSecurityGroup
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:PublicSubnet1"
+
+  EfsMountTargetSubnet2:
+    Type: AWS::EFS::MountTarget
+    Properties: 
+      FileSystemId: !Ref EfsShare
+      SecurityGroups: 
+        - !Ref EfsSecurityGroup
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:PublicSubnet2"
+
+  EfsShareAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties: 
+      FileSystemId: !Ref EfsShare
+      PosixUser: 
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory: 
+        Path: "/jenkins"
+        CreationInfo: 
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "777"
+
+  # CW Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '${AWS::StackName}'
+      RetentionInDays: 7
+
+  # ECS Task Definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${AWS::StackName}'
+      Cpu: "1024"
+      Memory: "4096"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:EcsExecutionRole"
+      ContainerDefinitions:
+        - Name: "jenkins"
+          Image: !Ref JenkinsImage
+          Essential: True
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: "TCP"
+            - ContainerPort: 50000
+              Protocol: "TCP"
+          LogConfiguration:
+            LogDriver: 'awslogs'
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "jenkins"
+          MountPoints:
+            - ContainerPath: "/var/jenkins_home"
+              ReadOnly: false
+              SourceVolume: "jenkinsefs"
+      Volumes:
+        - Name: "jenkinsefs"
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref EfsShare
+            TransitEncryption: "ENABLED"
+            AuthorizationConfig:
+              AccessPointId: !Ref EfsShareAccessPoint
+
+  # Cloud Map Service
+  CloudMapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties: 
+      DnsConfig: 
+        DnsRecords: 
+          - TTL: 60
+            Type: "A"
+        NamespaceId:
+          Fn::ImportValue:
+            !Sub "${CoreStackName}:NamespaceId"
+      Name: "jenkins"
+      NamespaceId:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:NamespaceId"
+
+  # ECS Service
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn: EfsShareAccessPoint
+    Properties:
+      Cluster:
+        Fn::ImportValue:
+          !Sub "${CoreStackName}:EcsCluster"
+      ServiceName: "jenkins"
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      PlatformVersion: "1.4.0"
+      DesiredCount: 1
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: True
+          Rollback: True
+      ServiceRegistries:
+        - RegistryArn: !GetAtt CloudMapService.Arn
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref JenkinsSecurityGroup
+          Subnets:
+            - Fn::ImportValue:
+                !Sub "${CoreStackName}:PublicSubnet1"
+            - Fn::ImportValue:
+                !Sub "${CoreStackName}:PublicSubnet2"
