@@ -11,10 +11,10 @@ spec:
   serviceAccountName: jenkins-sa-agent
   containers:
   - name: jnlp
-    image: '223615444511.dkr.ecr.eu-west-1.amazonaws.com/jenkins:inbound-agent'
+    image: '111222333444.dkr.ecr.eu-west-1.amazonaws.com/jenkins:inbound-agent'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
   - name: kaniko
-    image: 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:latest
+    image: 111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:latest
     imagePullPolicy: Always
     command:
     - /busybox/cat
@@ -29,7 +29,7 @@ spec:
                 DOCKERFILE  = "Dockerfile.v3"
                 GITREPO     = "git://github.com/ollypom/mysfits.git"
                 CONTEXT     = "./api"
-                REGISTRY    = '223615444511.dkr.ecr.eu-west-1.amazonaws.com'
+                REGISTRY    = '111222333444.dkr.ecr.eu-west-1.amazonaws.com'
                 IMAGE       = 'mysfits'
                 TAG         = 'latest'
             }
