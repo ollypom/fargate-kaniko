@@ -23,8 +23,8 @@ Helper](https://github.com/awslabs/amazon-ecr-credential-helper) via this
 
 ```
 $ cd kaniko
-$ docker build -t 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor .
-$ docker push 223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor
+$ docker build -t 111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor .
+$ docker push 111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor
 ```
 
 ## Prerequisites
