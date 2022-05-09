@@ -1,12 +1,12 @@
 {
   "family": "JenkinsOnAWSJenkinsLeaderJenkinsleaderServiceTaskDef4BDA8B13",
-  "taskRoleArn": "arn:aws:iam::223615444511:role/JenkinsOnAWSJenkinsLeader-JenkinsleaderServiceTask-G6PLXLEDMLEP",
-  "executionRoleArn": "arn:aws:iam::223615444511:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::111222333444:role/JenkinsOnAWSJenkinsLeader-JenkinsleaderServiceTask-G6PLXLEDMLEP",
+  "executionRoleArn": "arn:aws:iam::111222333444:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "containerDefinitions": [
     {
       "name": "web",
-      "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/jenkins:2.249.3-lts",
+      "image": "111222333444.dkr.ecr.eu-west-1.amazonaws.com/jenkins:2.249.3-lts",
       "portMappings": [
         {
           "containerPort": 8080,

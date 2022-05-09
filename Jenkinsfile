@@ -2,7 +2,7 @@ pipeline {
     agent {
         label 'fargate-workers'
     }
-  
+
     stages {
         stage('Clone') {
             steps {
@@ -16,7 +16,7 @@ pipeline {
                 /kaniko/executor \
                 --context "dir:///data/myapp/api/" \
                 --dockerfile "Dockerfile.v4" \
-                --destination "223615444511.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest" \
+                --destination "111222333444.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest" \
                 --force > /data/buildlogs 2>> /data/buildlogs
                 '''
             }
@@ -49,9 +49,9 @@ pipeline {
                                     echo "Still Building"
                                     sleep 2
                                 done
-                                
+
                                 pkill --signal 15 tail
-                                
+
                                 EXIT_CODE=$(curl --silent ${ECS_CONTAINER_METADATA_URI_V4}/task | jq -r '.Containers | .[] | select(.Name == "kaniko") | .ExitCode')
 
                                 if [ $EXIT_CODE = 1 ]

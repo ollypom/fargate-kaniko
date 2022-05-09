@@ -1,12 +1,12 @@
 {
     "family": "kaniko-jenkins",
-    "taskRoleArn": "arn:aws:iam::223615444511:role/Kaniko_Task_Role",
-    "executionRoleArn": "arn:aws:iam::223615444511:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::111222333444:role/Kaniko_Task_Role",
+    "executionRoleArn": "arn:aws:iam::111222333444:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
     "containerDefinitions": [
         {
             "name": "jenkins-agent",
-            "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/jenkins:inbound-agent",
+            "image": "111222333444.dkr.ecr.eu-west-1.amazonaws.com/jenkins:inbound-agent",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -26,7 +26,7 @@
         },
         {
             "name": "kaniko",
-            "image": "223615444511.dkr.ecr.eu-west-1.amazonaws.com/kaniko-debug",
+            "image": "111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko-debug",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
