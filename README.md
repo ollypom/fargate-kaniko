@@ -7,25 +7,10 @@ build) can not run in the default isolation boundary of a container and often
 need host privileges (--privileged) or access to the underlying Container
 Runtime. In AWS Fargate, you are not able to run a container with "privileges"
 and you are not able to access the underlying container runtime. Therefore a
-rootless builder, like Kaniko is required.
+rootless builder, like kaniko is required.
 
 This repository contains a Task Definition and a Run Task instruction for Amazon
 ECS. This Run Task could be triggered be a CI pipeline easily enough.
-
-The Task definition includes a self hosted Kaniko container image. The only
-difference between this image and the upstream image is that I have hard coded
-the Docker CLI `config.json`, where registry credentials are normally held. As
-the application image will be pushed to ECR, no registry credentials are
-required (they are sourced from the Task Role), however Kaniko needs to be told
-to use the [ECR Credential
-Helper](https://github.com/awslabs/amazon-ecr-credential-helper) via this
-`config.json` file.
-
-```
-$ cd kaniko
-$ docker build -t 111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor .
-$ docker push 111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor
-```
 
 ## Prerequisites
 
@@ -45,16 +30,16 @@ our build logs to go to.
 
 ```
 aws logs create-log-group \
-    --log-group-name kaniko-builder
+    --log-group-name /aws/ecs/service/kaniko
 
 aws logs put-retention-policy \
-    --log-group-name kaniko-builder \
+    --log-group-name /aws/ecs/service/kaniko \
     --retention-in-days 7
 ```
 
-Create the ECS task defintion. This will need to be customised for your
+Create the ECS task definition. This will need to be customized for your
 environment with the relevant ARNs and ECR / Git Repos. Also the commands in the
-Kaniko container definition set the Build Context and the location of the
+kaniko container definition set the Build Context and the location of the
 Dockerfile, these will need to be updated depending on the application git
 repository layout.
 
@@ -65,11 +50,11 @@ aws ecs register-task-definition \
 ```
 
 Finally we can run the ECS Task. This Run Task definition will also need to
-updated with the relevant AWS VPC, Subnet, Secruity Group and ECS Cluster.
+updated with the relevant AWS VPC, Subnet, Security Group and ECS Cluster.
 
 ```
 aws ecs run-task \
-    --task-definition kaniko-builder:17 \
+    --task-definition kaniko-builder \
     --cli-input-json file://kaniko-runtask.json
 ```
 
