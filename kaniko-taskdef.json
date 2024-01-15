@@ -6,24 +6,31 @@
     "containerDefinitions": [
         {
             "name": "kaniko",
-            "image": "111222333444.dkr.ecr.eu-west-1.amazonaws.com/kaniko:executor",
+            "image": "gcr.io/kaniko-project/executor:latest",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
-                    "awslogs-group": "kaniko-builder",
+                    "awslogs-group": "/aws/ecs/service/kaniko",
                     "awslogs-region": "eu-west-1",
                     "awslogs-stream-prefix": "kaniko"
                 }
             },
             "command": [
-                "--context", "git://github.com/ollypom/mysfits.git",
-                "--context-sub-path", "./api",
-                "--dockerfile", "Dockerfile.v3",
-                "--destination", "111222333444.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest",
+                "--context",
+                "git://github.com/ollypom/mysfits.git",
+                "--context-sub-path",
+                "./api",
+                "--dockerfile",
+                "Dockerfile.v3",
+                "--destination",
+                "111222333444.dkr.ecr.eu-west-1.amazonaws.com/mysfits:latest",
                 "--force"
             ]
-        }],
-    "requiresCompatibilities": ["FARGATE"],
+        }
+    ],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
     "cpu": "512",
     "memory": "1024"
 }
