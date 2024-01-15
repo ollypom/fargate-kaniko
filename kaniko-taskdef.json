@@ -1,6 +1,6 @@
 {
     "family": "kaniko-builder",
-    "taskRoleArn": "arn:aws:iam::111222333444:role/Kaniko_Task_Role",
+    "taskRoleArn": "arn:aws:iam::111222333444:role/AmazonEcsKanikoTaskRole",
     "executionRoleArn": "arn:aws:iam::111222333444:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
     "containerDefinitions": [
